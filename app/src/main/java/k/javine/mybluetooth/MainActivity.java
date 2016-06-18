@@ -6,6 +6,8 @@ import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.Intent;
 import android.content.IntentFilter;
+import android.os.Handler;
+import android.os.Message;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
 import android.util.Log;
@@ -30,6 +32,7 @@ import butterknife.Bind;
 import butterknife.ButterKnife;
 import k.javine.mybluetooth.tasks.ClientConnectThread;
 import k.javine.mybluetooth.tasks.ServerConnectThread;
+import k.javine.mybluetooth.utils.KeyUtils;
 
 public class MainActivity extends AppCompatActivity implements View.OnClickListener {
 
@@ -56,12 +59,30 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
     Button btn_send;
 
     private BluetoothAdapter bluetoothAdapter;
-    private ArrayList<String> foundDeviceInfo = new ArrayList<>();
     private ArrayAdapter<String> mArrayAdapter;
     private List<BluetoothDevice> mDevices = new ArrayList<>();
     private ClientConnectThread clientConnectThread;
     private ServerConnectThread serverConnectThread;
     private boolean isClientMode = true;
+
+    Handler mHandler = new Handler(){
+        @Override
+        public void handleMessage(Message msg) {
+            switch (msg.what){
+                case KeyUtils.MSG_CONNECT_SUCCESS:
+                    break;
+                case KeyUtils.MSG_CONNECT_FAIL:
+                    break;
+                case KeyUtils.MSG_READ_DATA:
+                    break;
+                case KeyUtils.MSG_SEND_DATA_FAIL:
+                    break;
+                case KeyUtils.MSG_SEND_DATA_SUCCESS:
+                    break;
+            }
+        }
+    };
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
