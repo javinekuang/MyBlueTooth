@@ -13,6 +13,8 @@ import android.view.View;
 import android.widget.AdapterView;
 import android.widget.ArrayAdapter;
 import android.widget.Button;
+import android.widget.EditText;
+import android.widget.LinearLayout;
 import android.widget.ListView;
 import android.widget.ProgressBar;
 import android.widget.RelativeLayout;
@@ -44,6 +46,14 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
     Button btn_sw;
     @Bind(R.id.text)
     TextView scan_text;
+    @Bind(R.id.ll_receive)
+    LinearLayout ll_receive;
+    @Bind(R.id.tv_receive)
+    TextView tv_receive;
+    @Bind(R.id.ed_input)
+    EditText ed_input;
+    @Bind(R.id.btn_send)
+    Button btn_send;
 
     private BluetoothAdapter bluetoothAdapter;
     private ArrayList<String> foundDeviceInfo = new ArrayList<>();
@@ -59,6 +69,7 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
         ButterKnife.bind(this);
         btn_scan.setOnClickListener(this);
         btn_sw.setOnClickListener(this);
+        btn_send.setOnClickListener(this);
         IntentFilter filter = new IntentFilter(BluetoothDevice.ACTION_FOUND);
         filter.addAction(BluetoothDevice.ACTION_BOND_STATE_CHANGED);
         registerReceiver(discoverReceiver, filter);
@@ -77,8 +88,6 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
                 if (isClientMode){
                     clientConnectThread = new ClientConnectThread(mDevices.get(position));
                     clientConnectThread.start();
-                }else{
-
                 }
             }
         });
