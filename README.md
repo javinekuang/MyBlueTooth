@@ -1,3 +1,3 @@
 # MyBlueTooth
 bluetooth Chat app
-can discovery, pair, connected, and tranfer data to each other.
+can discovery, pair, connected, and transfer data to each other.
