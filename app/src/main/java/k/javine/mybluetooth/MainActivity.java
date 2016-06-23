@@ -23,6 +23,9 @@ import android.widget.RelativeLayout;
 import android.widget.TextView;
 import android.widget.Toast;
 
+import java.io.UnsupportedEncodingException;
+import java.nio.charset.Charset;
+import java.text.Format;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Timer;
@@ -70,10 +73,26 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
         public void handleMessage(Message msg) {
             switch (msg.what){
                 case KeyUtils.MSG_CONNECT_SUCCESS:
+                    ll_receive.setVisibility(View.VISIBLE);
+                    deviceList.setVisibility(View.GONE);
+                    Toast.makeText(MainActivity.this,"Device Connected!",Toast.LENGTH_SHORT).show();
                     break;
                 case KeyUtils.MSG_CONNECT_FAIL:
+                    ll_receive.setVisibility(View.GONE);
+                    mDevices.clear();
+                    deviceList.setVisibility(View.VISIBLE);
+                    Toast.makeText(MainActivity.this,"Device Disconnected!",Toast.LENGTH_SHORT).show();
+                    cancelThread();
                     break;
                 case KeyUtils.MSG_READ_DATA:
+                    byte[] data = (byte[]) msg.obj;
+                    String s = "";
+                    try {
+                        s = new String(data, "GB2312");
+                    } catch (UnsupportedEncodingException e) {
+                        e.printStackTrace();
+                    }
+                    tv_receive.append(s.trim() + "\n");
                     break;
                 case KeyUtils.MSG_SEND_DATA_FAIL:
                     break;
@@ -107,7 +126,7 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
                 }
                 //connect a device
                 if (isClientMode){
-                    clientConnectThread = new ClientConnectThread(mDevices.get(position));
+                    clientConnectThread = new ClientConnectThread(mDevices.get(position),mHandler);
                     clientConnectThread.start();
                 }
             }
@@ -126,6 +145,24 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
                 break;
             case R.id.btn_sw:
                 checkBtIsOn();
+                break;
+            case R.id.btn_send:
+                if (isClientMode){
+                    String clientData = ed_input.getText().toString();
+                    try {
+                        clientConnectThread.sendData(clientData.getBytes("GB2312"));
+                    } catch (UnsupportedEncodingException e) {
+                        e.printStackTrace();
+                    }
+                }else{
+                    String serverData = ed_input.getText().toString();
+                    try {
+                        serverConnectThread.sendData(serverData.getBytes("GB2312"));
+                    } catch (UnsupportedEncodingException e) {
+                        e.printStackTrace();
+                    }
+                }
+                ed_input.setText("");
                 break;
         }
     }
@@ -181,7 +218,7 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
     private void discoverableBt(){
         Intent discoverableIntent = new Intent(BluetoothAdapter.ACTION_REQUEST_DISCOVERABLE);
         startActivity(discoverableIntent);
-        serverConnectThread = new ServerConnectThread(bluetoothAdapter);
+        serverConnectThread = new ServerConnectThread(bluetoothAdapter,mHandler);
         serverConnectThread.start();
     }
 
@@ -197,7 +234,7 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
                 int state = intent.getIntExtra(BluetoothDevice.EXTRA_BOND_STATE,0);
                 Log.d("Javine","BOUND_STATE:"+state);
                 if (state == BluetoothDevice.BOND_BONDED){
-                    Toast.makeText(MainActivity.this,"Connected!",Toast.LENGTH_SHORT).show();
+                    Toast.makeText(MainActivity.this,"Device Paired!",Toast.LENGTH_SHORT).show();
                 }
             }
         }
@@ -221,5 +258,13 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
     protected void onDestroy() {
         super.onDestroy();
         unregisterReceiver(discoverReceiver);
+        cancelThread();
+    }
+
+    private void cancelThread() {
+        if (clientConnectThread != null)
+            clientConnectThread.cancel();
+        if (serverConnectThread != null)
+            serverConnectThread.cancel();
     }
 }

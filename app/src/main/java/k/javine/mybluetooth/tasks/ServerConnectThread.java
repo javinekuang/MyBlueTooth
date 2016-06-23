@@ -4,10 +4,13 @@ import android.bluetooth.BluetoothAdapter;
 import android.bluetooth.BluetoothDevice;
 import android.bluetooth.BluetoothServerSocket;
 import android.bluetooth.BluetoothSocket;
+import android.os.Handler;
 import android.util.Log;
 
 import java.io.IOException;
 import java.util.UUID;
+
+import k.javine.mybluetooth.utils.KeyUtils;
 
 /**
  * Created by KuangYu on 2016/6/18 0018.
@@ -17,8 +20,12 @@ public class ServerConnectThread extends Thread {
     public static final String MY_UUID = "00001101-0000-1000-8000-00805F9B34FB";
     private BluetoothDevice mDevice;
     private BluetoothServerSocket serverSocket;
+    private BluetoothSocket clientSocket;
+    private Handler mHandler;
+    private ReadDataThread readDataThread;
+    private WriteDataThread writeDataThread;
 
-    public ServerConnectThread(BluetoothAdapter mAdapter){
+    public ServerConnectThread(BluetoothAdapter mAdapter,Handler handler){
         BluetoothServerSocket tmp = null;
         try{
             tmp = mAdapter.listenUsingRfcommWithServiceRecord("Server", UUID.fromString(MY_UUID));
@@ -26,21 +33,28 @@ public class ServerConnectThread extends Thread {
             e.printStackTrace();
         }
         serverSocket = tmp;
+        mHandler = handler;
     }
 
     @Override
     public void run() {
-        BluetoothSocket socket = null;
-
+        BluetoothSocket socket_tmp = null;
         while (true){
             try{
-                socket = serverSocket.accept();
+                socket_tmp = serverSocket.accept();
             }catch (IOException e){
+                mHandler.sendEmptyMessage(KeyUtils.MSG_CONNECT_FAIL);
                 e.printStackTrace();
             }
 
-            if (socket != null){
-                Log.d("Javine","Server is connected!!!");
+            if (socket_tmp != null){
+                clientSocket = socket_tmp;
+                Log.d("Javine", "Server is connected!!!");
+                mHandler.sendEmptyMessage(KeyUtils.MSG_CONNECT_SUCCESS);
+                readDataThread = new ReadDataThread(clientSocket,mHandler);
+                readDataThread.start();
+                writeDataThread = new WriteDataThread(clientSocket,mHandler);
+                writeDataThread.start();
                 try {
                     serverSocket.close();
                 } catch (IOException e) {
@@ -50,5 +64,18 @@ public class ServerConnectThread extends Thread {
             }
         }
 
+    }
+
+    public void sendData(byte[] data){
+        writeDataThread.setSendData(data);
+    }
+
+    public void cancel(){
+        if (readDataThread != null){
+            readDataThread.cancel();
+        }
+        if (writeDataThread != null){
+            writeDataThread.cancel();
+        }
     }
 }

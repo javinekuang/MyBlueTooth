@@ -3,6 +3,7 @@ package k.javine.mybluetooth.tasks;
 import android.bluetooth.BluetoothAdapter;
 import android.bluetooth.BluetoothDevice;
 import android.bluetooth.BluetoothSocket;
+import android.os.Handler;
 import android.util.Log;
 
 import java.io.ByteArrayInputStream;
@@ -10,7 +11,10 @@ import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
+import java.security.Key;
 import java.util.UUID;
+
+import k.javine.mybluetooth.utils.KeyUtils;
 
 /**
  * Created by KuangYu on 2016/6/17 0017.
@@ -19,9 +23,11 @@ public class ClientConnectThread extends Thread {
     public static final String MY_UUID = "00001101-0000-1000-8000-00805F9B34FB";
     private BluetoothDevice mDevice;
     private BluetoothSocket clientSocket;
-    private boolean isConnected;
+    private Handler mHandler;
+    private ReadDataThread readDataThread;
+    private WriteDataThread writeDataThread;
 
-    public ClientConnectThread(BluetoothDevice device){
+    public ClientConnectThread(BluetoothDevice device,Handler handler){
         BluetoothSocket socket = null;
         mDevice = device;
         try {
@@ -30,6 +36,7 @@ public class ClientConnectThread extends Thread {
             e.printStackTrace();
         }
         clientSocket = socket;
+        mHandler = handler;
     }
 
     @Override
@@ -43,36 +50,31 @@ public class ClientConnectThread extends Thread {
             } catch (IOException e1) {
                 e1.printStackTrace();
             }
+            mHandler.sendEmptyMessage(KeyUtils.MSG_CONNECT_FAIL);
             return;
         }
-        Log.d("Javine","Client is connected!!!");
+        Log.d("Javine", "Client is connected!!!");
         manageSocket();
     }
 
     private void manageSocket(){
-
+        mHandler.sendEmptyMessage(KeyUtils.MSG_CONNECT_SUCCESS);
+        readDataThread = new ReadDataThread(clientSocket,mHandler);
+        readDataThread.start();
+        writeDataThread = new WriteDataThread(clientSocket,mHandler);
+        writeDataThread.start();
     }
 
-    public void sendData(BluetoothSocket socket, int data) throws IOException{
-        ByteArrayOutputStream output = new ByteArrayOutputStream(4);
-        output.write(data);
-        OutputStream outputStream = socket.getOutputStream();
-        outputStream.write(output.toByteArray());
-    }
-
-    public int receiveData(BluetoothSocket socket) throws IOException{
-        byte[] buffer = new byte[4];
-        ByteArrayInputStream input = new ByteArrayInputStream(buffer);
-        InputStream inputStream = socket.getInputStream();
-        inputStream.read(buffer);
-        return input.read();
+    public void sendData(byte[] data){
+        writeDataThread.setSendData(data);
     }
 
     public void cancel(){
-        try {
-            clientSocket.close();
-        } catch (IOException e) {
-            e.printStackTrace();
+        if (readDataThread != null){
+            readDataThread.cancel();
+        }
+        if (writeDataThread != null){
+            writeDataThread.cancel();
         }
     }
 }
