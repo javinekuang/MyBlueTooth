@@ -1,6 +1,8 @@
 package k.javine.mybluetooth;
 
+import android.app.Activity;
 import android.bluetooth.BluetoothAdapter;
+import android.bluetooth.BluetoothClass;
 import android.bluetooth.BluetoothDevice;
 import android.content.BroadcastReceiver;
 import android.content.Context;
@@ -8,6 +10,7 @@ import android.content.Intent;
 import android.content.IntentFilter;
 import android.os.Handler;
 import android.os.Message;
+import android.os.ParcelUuid;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
 import android.util.Log;
@@ -37,7 +40,7 @@ import k.javine.mybluetooth.tasks.ClientConnectThread;
 import k.javine.mybluetooth.tasks.ServerConnectThread;
 import k.javine.mybluetooth.utils.KeyUtils;
 
-public class MainActivity extends AppCompatActivity implements View.OnClickListener {
+public class MainActivity extends Activity implements View.OnClickListener {
 
     public static final int REQUEST_BT_ENABLE = 0x01;
     public static final int REQUEST_BT_SCAN = 0x02;
@@ -228,7 +231,17 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
             String action = intent.getAction();
             if (BluetoothDevice.ACTION_FOUND.equals(action)){
                 BluetoothDevice device = intent.getParcelableExtra(BluetoothDevice.EXTRA_DEVICE);
-                mArrayAdapter.add(device.getName() + "\n" + device.getAddress());
+                BluetoothClass bluetoothClass = intent.getParcelableExtra(BluetoothDevice.EXTRA_CLASS);
+                String address = device.getAddress();
+                /*ParcelUuid[] uuids = device.getUuids();
+                if (uuids.length > 0){
+                    address = uuids[0].toString();
+                }*/
+                String type = "";
+                if (bluetoothClass != null && bluetoothClass.getDeviceClass() == BluetoothClass.Device.PHONE_SMART){
+                    type = "Phone:";
+                }
+                mArrayAdapter.add(type+device.getName() + "\n" + address);
                 mDevices.add(device);
             }else if (BluetoothDevice.ACTION_BOND_STATE_CHANGED.equals(action)){
                 int state = intent.getIntExtra(BluetoothDevice.EXTRA_BOND_STATE,0);
