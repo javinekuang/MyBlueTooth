@@ -9,6 +9,26 @@
         android:background="#66ffffff"
         />
 
+    <ImageView
+        android:id="@+id/iv_stroke"
+        android:layout_width="68dp"
+        android:layout_height="68dp"
+        android:layout_marginBottom="31dp"
+        android:background="@drawable/bg_circle_stroke"
+        android:visibility="gone"
+        android:layout_alignParentBottom="true"
+        android:layout_centerHorizontal="true"/>
+
+    <ImageView
+        android:id="@+id/iv_stroke_second"
+        android:layout_width="68dp"
+        android:layout_height="68dp"
+        android:layout_marginBottom="31dp"
+        android:background="@drawable/bg_circle_stroke"
+        android:visibility="gone"
+        android:layout_alignParentBottom="true"
+        android:layout_centerHorizontal="true"/>
+
     <RelativeLayout
         android:id="@+id/rl_beats"
         android:layout_width="70dp"
