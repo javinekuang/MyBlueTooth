@@ -13,16 +13,18 @@
     <RelativeLayout
         android:id="@+id/rl_device"
         android:layout_width="match_parent"
+        android:visibility="visible"
         android:layout_height="250dp">
         <ListView
             android:id="@+id/device_list"
             android:layout_width="match_parent"
-            android:layout_height="match_parent"/>
+            android:layout_height="match_parent"
+            android:visibility="gone"/>
         <LinearLayout
             android:id="@+id/ll_receive"
             android:layout_width="match_parent"
             android:layout_height="match_parent"
-            android:visibility="gone"
+            android:visibility="visible"
             android:orientation="vertical">
             <TextView
                 android:layout_width="wrap_content"
@@ -44,6 +46,7 @@
         android:layout_height="40dp"
         android:layout_marginTop="10dp"
         android:background="@drawable/bg_btn"
+        android:visibility="gone"
         android:layout_below="@id/rl_device">
         <ProgressBar
             android:id="@+id/progress_bar"
@@ -76,6 +79,7 @@
         android:layout_marginTop="10dp"
         android:textSize="18sp"
         android:layout_below="@+id/btn_scan"
+        android:visibility="gone"
         android:text="Client"/>
 
     <LinearLayout

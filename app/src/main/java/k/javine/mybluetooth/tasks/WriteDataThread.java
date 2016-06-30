@@ -26,6 +26,10 @@ public class WriteDataThread extends Thread {
         isCancel = false;
     }
 
+    public void setmHandler(Handler mHandler) {
+        this.mHandler = mHandler;
+    }
+
     public void cancel(){
         try {
             bluetoothSocket.close();

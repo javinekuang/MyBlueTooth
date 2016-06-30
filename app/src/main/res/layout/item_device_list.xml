@@ -9,8 +9,10 @@
 
     <ImageView
         android:id="@+id/iv_device_icon"
-        android:layout_width="55dp"
-        android:layout_height="55dp"
+        android:layout_width="45dp"
+        android:layout_height="45dp"
+        android:layout_marginTop="10dp"
+        android:layout_marginBottom="10dp"
         android:layout_centerVertical="true"
         android:src="@drawable/phone"/>
 
@@ -22,7 +24,6 @@
         android:layout_marginLeft="15dp"
         android:layout_alignTop="@id/iv_device_icon"
         android:textSize="18sp"
-        android:layout_marginTop="5dp"
         android:text="XX的手机"/>
 
     <TextView

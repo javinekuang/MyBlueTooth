@@ -1,6 +1,7 @@
 package k.javine.mybluetooth;
 
 import android.app.Activity;
+import android.app.ProgressDialog;
 import android.bluetooth.BluetoothAdapter;
 import android.bluetooth.BluetoothClass;
 import android.bluetooth.BluetoothDevice;
@@ -36,8 +37,10 @@ import java.util.TimerTask;
 
 import butterknife.Bind;
 import butterknife.ButterKnife;
+import k.javine.mybluetooth.model.DeviceDetail;
 import k.javine.mybluetooth.tasks.ClientConnectThread;
 import k.javine.mybluetooth.tasks.ServerConnectThread;
+import k.javine.mybluetooth.utils.DeviceUtils;
 import k.javine.mybluetooth.utils.KeyUtils;
 
 public class MainActivity extends Activity implements View.OnClickListener {
@@ -65,25 +68,24 @@ public class MainActivity extends Activity implements View.OnClickListener {
     Button btn_send;
 
     private BluetoothAdapter bluetoothAdapter;
-    private ArrayAdapter<String> mArrayAdapter;
     private List<BluetoothDevice> mDevices = new ArrayList<>();
     private ClientConnectThread clientConnectThread;
     private ServerConnectThread serverConnectThread;
     private boolean isClientMode = true;
+
+    private ProgressDialog progressDialog;
 
     Handler mHandler = new Handler(){
         @Override
         public void handleMessage(Message msg) {
             switch (msg.what){
                 case KeyUtils.MSG_CONNECT_SUCCESS:
-                    ll_receive.setVisibility(View.VISIBLE);
-                    deviceList.setVisibility(View.GONE);
+                    if (progressDialog != null){
+                        progressDialog.dismiss();
+                    }
                     Toast.makeText(MainActivity.this,"Device Connected!",Toast.LENGTH_SHORT).show();
                     break;
                 case KeyUtils.MSG_CONNECT_FAIL:
-                    ll_receive.setVisibility(View.GONE);
-                    mDevices.clear();
-                    deviceList.setVisibility(View.VISIBLE);
                     Toast.makeText(MainActivity.this,"Device Disconnected!",Toast.LENGTH_SHORT).show();
                     cancelThread();
                     break;
@@ -116,24 +118,21 @@ public class MainActivity extends Activity implements View.OnClickListener {
         IntentFilter filter = new IntentFilter(BluetoothDevice.ACTION_FOUND);
         filter.addAction(BluetoothDevice.ACTION_BOND_STATE_CHANGED);
         registerReceiver(discoverReceiver, filter);
-        bluetoothAdapter = BluetoothAdapter.getDefaultAdapter();
-        mArrayAdapter = new ArrayAdapter<String>(this,android.R.layout.simple_list_item_1);
-        deviceList.setAdapter(mArrayAdapter);
-        deviceList.setOnItemClickListener(new AdapterView.OnItemClickListener() {
-            @Override
-            public void onItemClick(AdapterView<?> parent, View view, int position, long id) {
-                //连接device时，先确保discovery已经关闭
-                if (bluetoothAdapter.isDiscovering()){
-                    bluetoothAdapter.cancelDiscovery();
-                    progressBar.setVisibility(View.GONE);
-                }
-                //connect a device
-                if (isClientMode){
-                    clientConnectThread = new ClientConnectThread(mDevices.get(position),mHandler);
-                    clientConnectThread.start();
-                }
-            }
-        });
+        bluetoothAdapter = MyApplication.bluetoothAdapter;
+        isClientMode = getIntent().getBooleanExtra("isClientMode",false);
+        if (isClientMode){
+            int position = getIntent().getIntExtra("devicePosition",-1);
+            DeviceDetail deviceDetail = DeviceUtils.bluetoothDeviceList.get(position);
+            clientConnectThread = new ClientConnectThread(deviceDetail.getBluetoothDevice(),mHandler);
+            clientConnectThread.start();
+            progressDialog = new ProgressDialog(this);
+            progressDialog.setMessage("connecting...");
+            progressDialog.setCanceledOnTouchOutside(false);
+            progressDialog.show();
+        }else{
+            serverConnectThread = MyApplication.serverConnectThread;
+            serverConnectThread.setHandler(mHandler);
+        }
     }
 
 
@@ -229,23 +228,9 @@ public class MainActivity extends Activity implements View.OnClickListener {
         @Override
         public void onReceive(Context context, Intent intent) {
             String action = intent.getAction();
-            if (BluetoothDevice.ACTION_FOUND.equals(action)){
-                BluetoothDevice device = intent.getParcelableExtra(BluetoothDevice.EXTRA_DEVICE);
-                BluetoothClass bluetoothClass = intent.getParcelableExtra(BluetoothDevice.EXTRA_CLASS);
-                String address = device.getAddress();
-                /*ParcelUuid[] uuids = device.getUuids();
-                if (uuids.length > 0){
-                    address = uuids[0].toString();
-                }*/
-                String type = "";
-                if (bluetoothClass != null && bluetoothClass.getDeviceClass() == BluetoothClass.Device.PHONE_SMART){
-                    type = "Phone:";
-                }
-                mArrayAdapter.add(type+device.getName() + "\n" + address);
-                mDevices.add(device);
-            }else if (BluetoothDevice.ACTION_BOND_STATE_CHANGED.equals(action)){
-                int state = intent.getIntExtra(BluetoothDevice.EXTRA_BOND_STATE,0);
-                Log.d("Javine","BOUND_STATE:"+state);
+            if (BluetoothDevice.ACTION_BOND_STATE_CHANGED.equals(action)){
+                int state = intent.getIntExtra(BluetoothDevice.EXTRA_BOND_STATE, 0);
+                Log.d("Javine", "BOUND_STATE:" + state);
                 if (state == BluetoothDevice.BOND_BONDED){
                     Toast.makeText(MainActivity.this,"Device Paired!",Toast.LENGTH_SHORT).show();
                 }
@@ -272,12 +257,14 @@ public class MainActivity extends Activity implements View.OnClickListener {
         super.onDestroy();
         unregisterReceiver(discoverReceiver);
         cancelThread();
+        MyApplication.serverConnectThread = null;
     }
 
     private void cancelThread() {
         if (clientConnectThread != null)
             clientConnectThread.cancel();
-        if (serverConnectThread != null)
+        if (serverConnectThread != null){
             serverConnectThread.cancel();
+        }
     }
 }

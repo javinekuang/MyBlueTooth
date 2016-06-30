@@ -8,6 +8,7 @@ import android.os.Handler;
 import android.util.Log;
 
 import java.io.IOException;
+import java.io.Serializable;
 import java.util.UUID;
 
 import k.javine.mybluetooth.utils.KeyUtils;
@@ -18,12 +19,12 @@ import k.javine.mybluetooth.utils.KeyUtils;
 public class ServerConnectThread extends Thread {
 
     public static final String MY_UUID = "00001101-0000-1000-8000-00805F9B34FB";
-    private BluetoothDevice mDevice;
     private BluetoothServerSocket serverSocket;
     private BluetoothSocket clientSocket;
     private Handler mHandler;
     private ReadDataThread readDataThread;
     private WriteDataThread writeDataThread;
+    private boolean isCancel = false;
 
     public ServerConnectThread(BluetoothAdapter mAdapter,Handler handler){
         BluetoothServerSocket tmp = null;
@@ -36,10 +37,16 @@ public class ServerConnectThread extends Thread {
         mHandler = handler;
     }
 
+    public void setHandler(Handler handler){
+        mHandler = handler;
+        readDataThread.setmHandler(handler);
+        writeDataThread.setmHandler(handler);
+    }
+
     @Override
     public void run() {
         BluetoothSocket socket_tmp = null;
-        while (true){
+        while (!isCancel){
             try{
                 socket_tmp = serverSocket.accept();
             }catch (IOException e){
@@ -77,5 +84,6 @@ public class ServerConnectThread extends Thread {
         if (writeDataThread != null){
             writeDataThread.cancel();
         }
+        isCancel = true;
     }
 }

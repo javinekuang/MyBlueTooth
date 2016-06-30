@@ -26,6 +26,10 @@ public class ReadDataThread extends Thread {
         mHandler = handler;
     }
 
+    public void setmHandler(Handler mHandler) {
+        this.mHandler = mHandler;
+    }
+
     public int receiveData(BluetoothSocket socket) throws IOException {
         if (!socket.isConnected()){ //如果socket close, isConnected会返回false
             return -1;
@@ -54,6 +58,7 @@ public class ReadDataThread extends Thread {
             } catch (IOException e) {
                 e.printStackTrace();
                 mHandler.sendEmptyMessage(KeyUtils.MSG_CONNECT_FAIL);
+                isCancel = true;
             }
         }
     }

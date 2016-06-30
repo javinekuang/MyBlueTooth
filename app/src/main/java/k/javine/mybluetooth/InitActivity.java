@@ -11,6 +11,7 @@ import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.Intent;
 import android.content.IntentFilter;
+import android.content.SharedPreferences;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.Message;
@@ -21,6 +22,7 @@ import android.view.animation.Animation;
 import android.view.animation.AnimationSet;
 import android.view.animation.DecelerateInterpolator;
 import android.view.animation.ScaleAnimation;
+import android.widget.AdapterView;
 import android.widget.ImageView;
 import android.widget.ListView;
 import android.widget.RelativeLayout;
@@ -39,6 +41,8 @@ import k.javine.mybluetooth.model.DeviceDetail;
 import k.javine.mybluetooth.tasks.ClientConnectThread;
 import k.javine.mybluetooth.tasks.ReadDataThread;
 import k.javine.mybluetooth.tasks.ServerConnectThread;
+import k.javine.mybluetooth.utils.DeviceUtils;
+import k.javine.mybluetooth.utils.KeyUtils;
 
 /**
  * Created by KuangYu on 2016/6/24 0024.
@@ -62,15 +66,18 @@ public class InitActivity extends Activity {
 
     private DeviceAdapter mAdapter;
     private List<DeviceDetail> deviceDetailList;
-    private ClientConnectThread clientConnectThread;
-    private ServerConnectThread serverConnectThread;
-
-    private BluetoothAdapter bluetoothAdapter;
 
     Handler mHandler = new Handler(){
         @Override
         public void handleMessage(Message msg) {
             switch (msg.what){
+                case KeyUtils.MSG_CONNECT_SUCCESS:
+                    Intent connectIntent = new Intent(InitActivity.this,MainActivity.class);
+                    connectIntent.putExtra("isClientMode", false);
+                    startActivity(connectIntent);
+                    InitActivity.this.finish();
+                    break;
+
                 case ANIMATION_ZOOM_IN:
                     rl_beats.startAnimation(zoomInAnimation);
                     break;
@@ -90,39 +97,53 @@ public class InitActivity extends Activity {
         animationThread = new AnimationThread();
         animationThread.start();
 
-        deviceDetailList = new ArrayList<>();
+        deviceDetailList = DeviceUtils.bluetoothDeviceList;
         mAdapter = new DeviceAdapter(this,deviceDetailList);
         device_list.setAdapter(mAdapter);
+        device_list.setOnItemClickListener(new AdapterView.OnItemClickListener() {
+            @Override
+            public void onItemClick(AdapterView<?> parent, View view, int position, long id) {
+                Intent connectIntent = new Intent(InitActivity.this,MainActivity.class);
+                connectIntent.putExtra("isClientMode",true);
+                connectIntent.putExtra("devicePosition", position);
+                startActivity(connectIntent);
+                MyApplication.serverConnectThread.cancel();
+                InitActivity.this.finish();
+            }
+        });
 
         IntentFilter filter = new IntentFilter(BluetoothDevice.ACTION_FOUND);
         filter.addAction(BluetoothDevice.ACTION_BOND_STATE_CHANGED);
         registerReceiver(discoverReceiver, filter);
-        bluetoothAdapter = BluetoothAdapter.getDefaultAdapter();
+        MyApplication.bluetoothAdapter = BluetoothAdapter.getDefaultAdapter();
+        checkBtIsOn();
     }
 
     /**
      * Client & Server
      */
     private void checkBtIsOn(){
-        if (bluetoothAdapter == null){
+        if (MyApplication.bluetoothAdapter == null){
             Toast.makeText(this,"your device does not have BT.",Toast.LENGTH_SHORT).show();
             return;
         }
-        if (!bluetoothAdapter.isEnabled()){
+        if (!MyApplication.bluetoothAdapter.isEnabled()){
             Intent enableBtIntent = new Intent(BluetoothAdapter.ACTION_REQUEST_ENABLE);
             startActivityForResult(enableBtIntent, REQUEST_BT_ENABLE);
             return;
         }else{
             Toast.makeText(InitActivity.this,"Bluetooth is open.",Toast.LENGTH_SHORT).show();
+            discoverableBt();
+            scanBt();
         }
     }
 
     private void scanBt(){
-        if (bluetoothAdapter == null){
+        if (MyApplication.bluetoothAdapter == null){
             Toast.makeText(this,"your device does not have BT.",Toast.LENGTH_SHORT).show();
             return;
         }
-        bluetoothAdapter.startDiscovery();
+        MyApplication.bluetoothAdapter.startDiscovery();
         Timer timer = new Timer();
         timer.schedule(new TimerTask() {
             @Override
@@ -130,7 +151,8 @@ public class InitActivity extends Activity {
                 runOnUiThread(new Runnable() {
                     @Override
                     public void run() {
-                        bluetoothAdapter.cancelDiscovery();
+                        MyApplication.bluetoothAdapter.cancelDiscovery();
+                        //animationThread.cancelThread();
                     }
                 });
             }
@@ -140,8 +162,8 @@ public class InitActivity extends Activity {
     private void discoverableBt(){
         Intent discoverableIntent = new Intent(BluetoothAdapter.ACTION_REQUEST_DISCOVERABLE);
         startActivity(discoverableIntent);
-        serverConnectThread = new ServerConnectThread(bluetoothAdapter,mHandler);
-        serverConnectThread.start();
+        MyApplication.serverConnectThread = new ServerConnectThread(MyApplication.bluetoothAdapter,mHandler);
+        MyApplication.serverConnectThread.start();
     }
 
     private final BroadcastReceiver discoverReceiver = new BroadcastReceiver() {
@@ -151,11 +173,6 @@ public class InitActivity extends Activity {
             if (BluetoothDevice.ACTION_FOUND.equals(action)){
                 BluetoothDevice device = intent.getParcelableExtra(BluetoothDevice.EXTRA_DEVICE);
                 BluetoothClass bluetoothClass = intent.getParcelableExtra(BluetoothDevice.EXTRA_CLASS);
-                String address = device.getAddress();
-                /*ParcelUuid[] uuids = device.getUuids();
-                if (uuids.length > 0){
-                    address = uuids[0].toString();
-                }*/
                 DeviceDetail deviceDetail;
                 if (bluetoothClass != null ){
                     deviceDetail = new DeviceDetail(device,bluetoothClass.getDeviceClass());
@@ -169,6 +186,36 @@ public class InitActivity extends Activity {
             }
         }
     };
+
+    @Override
+    protected void onActivityResult(int requestCode, int resultCode, Intent data) {
+        super.onActivityResult(requestCode, resultCode, data);
+        if (resultCode == RESULT_OK){
+            switch (requestCode){
+                case REQUEST_BT_ENABLE:
+                    Toast.makeText(InitActivity.this,"Bluetooth is open.",Toast.LENGTH_SHORT).show();
+                    discoverableBt();
+                    scanBt();
+                    break;
+            }
+        }
+    }
+
+    @Override
+    protected void onDestroy() {
+        super.onDestroy();
+        unregisterReceiver(discoverReceiver);
+        cancelThread();
+    }
+
+    private void cancelThread() {
+        if (animationThread != null){
+            animationThread.cancelThread();
+        }
+        if (MyApplication.bluetoothAdapter.isDiscovering()){
+            MyApplication.bluetoothAdapter.cancelDiscovery();
+        }
+    }
 
     //=========================================================================
     //   Animation

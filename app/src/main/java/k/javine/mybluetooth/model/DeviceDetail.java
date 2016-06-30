@@ -23,6 +23,7 @@ public class DeviceDetail implements Serializable{
     public DeviceDetail(BluetoothDevice bluetoothDevice, int deviceType){
         address = bluetoothDevice.getAddress();
         this.deviceType = deviceType;
+        this.bluetoothDevice = bluetoothDevice;
     }
 
     public String getAddress() {
