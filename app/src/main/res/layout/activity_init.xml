@@ -9,6 +9,11 @@
         android:background="#66ffffff"
         />
 
+    <ListView
+        android:id="@+id/device_list"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"/>
+
     <ImageView
         android:id="@+id/iv_stroke"
         android:layout_width="68dp"
@@ -34,14 +39,21 @@
         android:layout_width="70dp"
         android:layout_height="70dp"
         android:layout_marginBottom="30dp"
+        android:clickable="true"
+        android:focusable="true"
+        android:focusableInTouchMode="true"
         android:background="@drawable/bg_circle"
         android:layout_alignParentBottom="true"
         android:layout_centerHorizontal="true">
+        <TextView
+            android:id="@+id/tv_state"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_centerInParent="true"
+            android:textColor="@android:color/white"
+            android:textSize="16sp"
+            android:textStyle="bold"
+            android:text="OFF"/>
     </RelativeLayout>
-
-    <ListView
-        android:id="@+id/device_list"
-        android:layout_width="match_parent"
-        android:layout_height="match_parent"/>
 
 </RelativeLayout>

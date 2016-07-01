@@ -26,6 +26,7 @@ import android.widget.AdapterView;
 import android.widget.ImageView;
 import android.widget.ListView;
 import android.widget.RelativeLayout;
+import android.widget.TextView;
 import android.widget.Toast;
 
 import java.util.ArrayList;
@@ -60,6 +61,8 @@ public class InitActivity extends Activity {
     ImageView iv_stroke_second;
     @Bind(R.id.device_list)
     ListView device_list;
+    @Bind(R.id.tv_state)
+    TextView tv_state;
 
     ScaleAnimation zoomOutAnimation,zoomInAnimation;
     AnimationThread animationThread;
@@ -94,8 +97,6 @@ public class InitActivity extends Activity {
         setContentView(R.layout.activity_init);
         ButterKnife.bind(this);
         initAnimation();
-        animationThread = new AnimationThread();
-        animationThread.start();
 
         deviceDetailList = DeviceUtils.bluetoothDeviceList;
         mAdapter = new DeviceAdapter(this,deviceDetailList);
@@ -103,11 +104,12 @@ public class InitActivity extends Activity {
         device_list.setOnItemClickListener(new AdapterView.OnItemClickListener() {
             @Override
             public void onItemClick(AdapterView<?> parent, View view, int position, long id) {
-                Intent connectIntent = new Intent(InitActivity.this,MainActivity.class);
-                connectIntent.putExtra("isClientMode",true);
+                Intent connectIntent = new Intent(InitActivity.this, MainActivity.class);
+                connectIntent.putExtra("isClientMode", true);
                 connectIntent.putExtra("devicePosition", position);
                 startActivity(connectIntent);
                 MyApplication.serverConnectThread.cancel();
+                MyApplication.serverConnectThread.setHandler(null);
                 InitActivity.this.finish();
             }
         });
@@ -116,6 +118,16 @@ public class InitActivity extends Activity {
         filter.addAction(BluetoothDevice.ACTION_BOND_STATE_CHANGED);
         registerReceiver(discoverReceiver, filter);
         MyApplication.bluetoothAdapter = BluetoothAdapter.getDefaultAdapter();
+        rl_beats.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                if (tv_state.getText().toString().equals("OFF")){
+                    checkBtIsOn();
+                }else{
+                    closeBtAnimation();
+                }
+            }
+        });
         checkBtIsOn();
     }
 
@@ -130,13 +142,30 @@ public class InitActivity extends Activity {
         if (!MyApplication.bluetoothAdapter.isEnabled()){
             Intent enableBtIntent = new Intent(BluetoothAdapter.ACTION_REQUEST_ENABLE);
             startActivityForResult(enableBtIntent, REQUEST_BT_ENABLE);
+            closeBtAnimation();
             return;
         }else{
             Toast.makeText(InitActivity.this,"Bluetooth is open.",Toast.LENGTH_SHORT).show();
+            openBtAnimation();
+        }
+    }
+
+    private void openBtAnimation() {
+        if (animationThread == null){
+            animationThread = new AnimationThread();
+            animationThread.start();
+            tv_state.setText("ON");
             discoverableBt();
             scanBt();
         }
     }
+
+    private void closeBtAnimation(){
+        cancelThread();
+        animationThread = null;
+        tv_state.setText("OFF");
+    }
+
 
     private void scanBt(){
         if (MyApplication.bluetoothAdapter == null){
@@ -152,11 +181,11 @@ public class InitActivity extends Activity {
                     @Override
                     public void run() {
                         MyApplication.bluetoothAdapter.cancelDiscovery();
-                        //animationThread.cancelThread();
+                        closeBtAnimation();
                     }
                 });
             }
-        },10000);
+        },20000);
     }
 
     private void discoverableBt(){
@@ -194,8 +223,7 @@ public class InitActivity extends Activity {
             switch (requestCode){
                 case REQUEST_BT_ENABLE:
                     Toast.makeText(InitActivity.this,"Bluetooth is open.",Toast.LENGTH_SHORT).show();
-                    discoverableBt();
-                    scanBt();
+                    openBtAnimation();
                     break;
             }
         }
