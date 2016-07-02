@@ -66,6 +66,7 @@ public class InitActivity extends Activity {
 
     ScaleAnimation zoomOutAnimation,zoomInAnimation;
     AnimationThread animationThread;
+    private Timer scanTimer;
 
     private DeviceAdapter mAdapter;
     private List<DeviceDetail> deviceDetailList;
@@ -115,13 +116,14 @@ public class InitActivity extends Activity {
         });
 
         IntentFilter filter = new IntentFilter(BluetoothDevice.ACTION_FOUND);
+        filter.addAction(BluetoothAdapter.ACTION_STATE_CHANGED);
         filter.addAction(BluetoothDevice.ACTION_BOND_STATE_CHANGED);
         registerReceiver(discoverReceiver, filter);
         MyApplication.bluetoothAdapter = BluetoothAdapter.getDefaultAdapter();
         rl_beats.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-                if (tv_state.getText().toString().equals("OFF")){
+                if (!MyApplication.bluetoothAdapter.isDiscovering()){
                     checkBtIsOn();
                 }else{
                     closeBtAnimation();
@@ -143,10 +145,12 @@ public class InitActivity extends Activity {
             Intent enableBtIntent = new Intent(BluetoothAdapter.ACTION_REQUEST_ENABLE);
             startActivityForResult(enableBtIntent, REQUEST_BT_ENABLE);
             closeBtAnimation();
+            tv_state.setText("OFF");
             return;
         }else{
             Toast.makeText(InitActivity.this,"Bluetooth is open.",Toast.LENGTH_SHORT).show();
             openBtAnimation();
+            tv_state.setText("ON");
         }
     }
 
@@ -154,7 +158,6 @@ public class InitActivity extends Activity {
         if (animationThread == null){
             animationThread = new AnimationThread();
             animationThread.start();
-            tv_state.setText("ON");
             discoverableBt();
             scanBt();
         }
@@ -163,7 +166,10 @@ public class InitActivity extends Activity {
     private void closeBtAnimation(){
         cancelThread();
         animationThread = null;
-        tv_state.setText("OFF");
+        if (scanTimer != null){
+            scanTimer.cancel();
+            scanTimer = null;
+        }
     }
 
 
@@ -173,8 +179,8 @@ public class InitActivity extends Activity {
             return;
         }
         MyApplication.bluetoothAdapter.startDiscovery();
-        Timer timer = new Timer();
-        timer.schedule(new TimerTask() {
+        scanTimer = new Timer();
+        scanTimer.schedule(new TimerTask() {
             @Override
             public void run() {
                 runOnUiThread(new Runnable() {
@@ -185,7 +191,7 @@ public class InitActivity extends Activity {
                     }
                 });
             }
-        },20000);
+        },10000);
     }
 
     private void discoverableBt(){
@@ -212,6 +218,18 @@ public class InitActivity extends Activity {
                     deviceDetailList.add(deviceDetail);
                     mAdapter.notifyDataSetChanged();
                 }
+            }else if (BluetoothAdapter.ACTION_STATE_CHANGED.equals(action)){
+                int state = intent.getIntExtra(BluetoothAdapter.EXTRA_STATE,-1);
+                int preState = intent.getIntExtra(BluetoothAdapter.EXTRA_PREVIOUS_STATE,-1);
+                if (state != -1 && state != preState){
+                    if (state == BluetoothAdapter.STATE_ON){
+                        openBtAnimation();
+                        tv_state.setText("ON");
+                    }else if(state == BluetoothAdapter.STATE_OFF){
+                        closeBtAnimation();
+                        tv_state.setText("OFF");
+                    }
+                }
             }
         }
     };
@@ -224,6 +242,7 @@ public class InitActivity extends Activity {
                 case REQUEST_BT_ENABLE:
                     Toast.makeText(InitActivity.this,"Bluetooth is open.",Toast.LENGTH_SHORT).show();
                     openBtAnimation();
+                    tv_state.setText("ON");
                     break;
             }
         }
