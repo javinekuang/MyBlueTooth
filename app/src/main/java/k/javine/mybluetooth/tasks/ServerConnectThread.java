@@ -39,8 +39,10 @@ public class ServerConnectThread extends Thread {
 
     public void setHandler(Handler handler){
         mHandler = handler;
-        readDataThread.setmHandler(handler);
-        writeDataThread.setmHandler(handler);
+        if (readDataThread != null)
+            readDataThread.setmHandler(handler);
+        if (writeDataThread != null)
+            writeDataThread.setmHandler(handler);
     }
 
     @Override
@@ -80,9 +82,11 @@ public class ServerConnectThread extends Thread {
     public void cancel(){
         if (readDataThread != null){
             readDataThread.cancel();
+            readDataThread = null;
         }
         if (writeDataThread != null){
             writeDataThread.cancel();
+            writeDataThread = null;
         }
         isCancel = true;
     }

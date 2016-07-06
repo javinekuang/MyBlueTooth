@@ -2,13 +2,15 @@ package k.javine.mybluetooth.model;
 
 import android.bluetooth.BluetoothClass;
 import android.bluetooth.BluetoothDevice;
+import android.os.Parcel;
+import android.os.Parcelable;
 
 import java.io.Serializable;
 
 /**
  * Created by KuangYu on 2016/6/29 0029.
  */
-public class DeviceDetail implements Serializable{
+public class DeviceDetail implements Parcelable{
 
     public static final int DEVICE_PHONE = BluetoothClass.Device.PHONE_SMART;
 
@@ -25,6 +27,24 @@ public class DeviceDetail implements Serializable{
         this.deviceType = deviceType;
         this.bluetoothDevice = bluetoothDevice;
     }
+
+    protected DeviceDetail(Parcel in) {
+        address = in.readString();
+        deviceType = in.readInt();
+        bluetoothDevice = in.readParcelable(BluetoothDevice.class.getClassLoader());
+    }
+
+    public static final Creator<DeviceDetail> CREATOR = new Creator<DeviceDetail>() {
+        @Override
+        public DeviceDetail createFromParcel(Parcel in) {
+            return new DeviceDetail(in);
+        }
+
+        @Override
+        public DeviceDetail[] newArray(int size) {
+            return new DeviceDetail[size];
+        }
+    };
 
     public String getAddress() {
         return address;
@@ -64,5 +84,17 @@ public class DeviceDetail implements Serializable{
     @Override
     public int hashCode() {
         return address.hashCode();
+    }
+
+    @Override
+    public int describeContents() {
+        return 0;
+    }
+
+    @Override
+    public void writeToParcel(Parcel dest, int flags) {
+        dest.writeString(address);
+        dest.writeInt(deviceType);
+        dest.writeParcelable(bluetoothDevice, flags);
     }
 }

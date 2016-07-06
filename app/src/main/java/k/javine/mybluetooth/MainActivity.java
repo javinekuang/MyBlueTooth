@@ -83,10 +83,15 @@ public class MainActivity extends Activity implements View.OnClickListener {
                     if (progressDialog != null){
                         progressDialog.dismiss();
                     }
+                    btn_send.setEnabled(true);
                     Toast.makeText(MainActivity.this,"Device Connected!",Toast.LENGTH_SHORT).show();
                     break;
                 case KeyUtils.MSG_CONNECT_FAIL:
+                    if (progressDialog != null){
+                        progressDialog.dismiss();
+                    }
                     Toast.makeText(MainActivity.this,"Device Disconnected!",Toast.LENGTH_SHORT).show();
+                    btn_send.setEnabled(false);
                     cancelThread();
                     break;
                 case KeyUtils.MSG_READ_DATA:
@@ -121,8 +126,9 @@ public class MainActivity extends Activity implements View.OnClickListener {
         bluetoothAdapter = MyApplication.bluetoothAdapter;
         isClientMode = getIntent().getBooleanExtra("isClientMode",false);
         if (isClientMode){
-            int position = getIntent().getIntExtra("devicePosition",-1);
-            DeviceDetail deviceDetail = DeviceUtils.bluetoothDeviceList.get(position);
+            MyApplication.serverConnectThread.cancel();
+            MyApplication.serverConnectThread.setHandler(null);
+            DeviceDetail deviceDetail = getIntent().getParcelableExtra("device");
             clientConnectThread = new ClientConnectThread(deviceDetail.getBluetoothDevice(),mHandler);
             clientConnectThread.start();
             progressDialog = new ProgressDialog(this);

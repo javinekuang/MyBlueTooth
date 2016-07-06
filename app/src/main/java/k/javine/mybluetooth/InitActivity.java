@@ -98,7 +98,14 @@ public class InitActivity extends Activity {
         setContentView(R.layout.activity_init);
         ButterKnife.bind(this);
         initAnimation();
+        initControl();
+        checkBtIsOn();
+    }
 
+    /**
+     * 初始化控制
+     */
+    private void initControl() {
         deviceDetailList = DeviceUtils.bluetoothDeviceList;
         mAdapter = new DeviceAdapter(this,deviceDetailList);
         device_list.setAdapter(mAdapter);
@@ -108,9 +115,8 @@ public class InitActivity extends Activity {
                 Intent connectIntent = new Intent(InitActivity.this, MainActivity.class);
                 connectIntent.putExtra("isClientMode", true);
                 connectIntent.putExtra("devicePosition", position);
+                connectIntent.putExtra("device", deviceDetailList.get(position));
                 startActivity(connectIntent);
-                MyApplication.serverConnectThread.cancel();
-                MyApplication.serverConnectThread.setHandler(null);
                 InitActivity.this.finish();
             }
         });
@@ -123,14 +129,16 @@ public class InitActivity extends Activity {
         rl_beats.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-                if (!MyApplication.bluetoothAdapter.isDiscovering()){
+
+                startActivity(new Intent(InitActivity.this,ManagerActivity.class));
+
+                /*if (!MyApplication.bluetoothAdapter.isDiscovering()){
                     checkBtIsOn();
                 }else{
                     closeBtAnimation();
-                }
+                }*/
             }
         });
-        checkBtIsOn();
     }
 
     /**

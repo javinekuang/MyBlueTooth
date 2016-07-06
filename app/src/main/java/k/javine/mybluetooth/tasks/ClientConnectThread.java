@@ -72,9 +72,11 @@ public class ClientConnectThread extends Thread {
     public void cancel(){
         if (readDataThread != null){
             readDataThread.cancel();
+            readDataThread = null;
         }
         if (writeDataThread != null){
             writeDataThread.cancel();
+            writeDataThread = null;
         }
     }
 }
